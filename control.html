@@ -163,7 +163,7 @@
             let trans='none'
          
 
-            let message = document.getElementById('messageInput').value;
+            let message = (document.getElementById('messageInput').value).trim().toLowerCase();
             if (message=='transfere'){
                 // document.getElementById('fltype').style.display='inline-block';
                
@@ -174,7 +174,8 @@
                  message=getData('filename')
                  trans= out[1]
                 
-                 alert(message)
+                 alert('You are sending - '+ message)
+
                  
                 
 
@@ -295,4 +296,21 @@
 
 
 
+
+
+
+
+
+
+
+
+
+  
+
+  <!-- const retrievedData = getData('userData');-->
+  
+
+
+<!--  
+  storeData('userData', myData); -->
   
