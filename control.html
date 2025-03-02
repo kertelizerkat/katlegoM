@@ -90,20 +90,96 @@
             background-color: #e9ecef;
             border-radius: 5px;
         }
+        #fltype{
+            display: none;
+        }
     </style>
 </head>
 <body>
     <h1 id="heading">Hey KAT</h1>
     <input type="text" id="messageInput" placeholder="Enter your message" onkeypress="handleKeyPress(event)">
-    <button id="sendButton" onclick="sendMessage()">Send</button>
+    <button id="sendButton" onclick="sendMessage()">Send</button><input id="fltype" type="file" id="fileInput">
     <div id="loader"></div>
     <p id="responseOutput"></p>
     <p id="confirmationMessage"></p>
     <div id="messages"></div>
 
     <script>
+    function readFileData(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      resolve(event.target.result);
+    };
+    reader.onerror = reject;
+    reader.readAsText(file);
+  });
+}
+
+    async function waitForFileData(fileInput) {
+    return new Promise((resolve, reject) => {
+        fileInput.addEventListener('change', async function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            try {
+            const data = await readFileData(file);
+            storeData('filename', file.name)
+            console.log(file)
+             message = file;
+             trans = data;
+            if (message && trans) {
+                resolve({ message, trans });
+            } else {
+                reject('File data is incomplete.');
+            }
+            } catch (error) {
+            reject(error);
+            }
+        } else {
+            reject('No file selected.');
+        }
+        });
+
+        fileInput.click(); // Programmatically trigger the file dialog
+    });
+    }
+
+    async function selectFileAndProcess() {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.style.display = 'none'; // Hide the input element
+    document.body.appendChild(fileInput);
+
+    try {
+        const { message, trans } = await waitForFileData(fileInput);
+        return [fileInput, trans]
+      
+    } catch (error) {
+        console.error(error);
+    }
+    }
+
         async function sendMessage() {
-            const message = document.getElementById('messageInput').value;
+            let trans='none'
+         
+
+            let message = document.getElementById('messageInput').value;
+            if (message=='transfere'){
+                document.getElementById('fltype').style.display='inline-block';
+               
+
+
+                const fileInput = document.querySelector('input[type="file"]');
+                let out= await selectFileAndProcess();
+                 message=getData('filename')
+                 trans= out[1]
+                
+                 alert(message)
+                 
+                
+
+        // Usage
+             } 
             const sendButton = document.getElementById('sendButton');
             const loader = document.getElementById('loader');
             sendButton.style.display = 'none';
@@ -122,7 +198,7 @@
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ message: message })
+                body: JSON.stringify({ message: message, transfere: trans })
             });
 
             const data = await response.json();
@@ -202,7 +278,21 @@
             document.body.removeChild(link);
         }
         
+        function storeData(key, data) {
+    localStorage.setItem(key, data);
+  }
+
+  function getData(key) {
+    const data = localStorage.getItem(key);
+    return data 
+  }
+
         window.onload = fetchMessage;
     </script>
 </body>
 </html>
+
+
+
+
+  
