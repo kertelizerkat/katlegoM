@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -25,7 +26,7 @@
             margin-bottom: 10px;
         }
 
-        button {
+        button, #loader {
             padding: 10px 20px;
             font-size: 16px;
             color: #fff;
@@ -33,10 +34,37 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            position: relative;
         }
 
         button:hover {
             background-color: #0056b3;
+        }
+
+        .loading {
+            display: inline-block;
+        }
+
+        #loader {
+            display: none;
+        }
+
+        #loader::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s linear infinite;
+            transform: translate(-50%, -50%);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
         #responseOutput, #confirmationMessage {
@@ -67,7 +95,8 @@
 <body>
     <h1 id="heading">Hey KAT</h1>
     <input type="text" id="messageInput" placeholder="Enter your message" onkeypress="handleKeyPress(event)">
-    <button onclick="sendMessage()">Send</button>
+    <button id="sendButton" onclick="sendMessage()">Send</button>
+    <div id="loader"></div>
     <p id="responseOutput"></p>
     <p id="confirmationMessage"></p>
     <div id="messages"></div>
@@ -75,11 +104,19 @@
     <script>
         async function sendMessage() {
             const message = document.getElementById('messageInput').value;
-            if (message=='cls'){
+            const sendButton = document.getElementById('sendButton');
+            const loader = document.getElementById('loader');
+            sendButton.style.display = 'none';
+            loader.style.display = 'inline-block';
+
+            if (message=='cls' || message=='Cls' || message=='CLS' || message=='clear' || message=='Clear' || message=='CLEAR'){
                 document.getElementById('messageInput').value=''
                 document.getElementById('messages').innerHTML=''
+                sendButton.style.display = 'inline-block';
+                loader.style.display = 'none';
                 return
             }
+            
             const response = await fetch('https://sculpin-charming-directly.ngrok-free.app/send_message', {
                 method: 'POST',
                 headers: {
@@ -87,37 +124,37 @@
                 },
                 body: JSON.stringify({ message: message })
             });
+
             const data = await response.json();
+            sendButton.style.display = 'inline-block';
+            loader.style.display = 'none';
+
             if (data.file=='true'){
                 if (data.type=='txt'){
                 document.getElementById('responseOutput').innerText ='File retrieved';
                 downloadFile(data.response,data.filename)
-                document.getElementById('messageInput').value = '';
+               
                 appendMessage("File downloaded");
-                document.getElementById('responseOutput').innerText = ''}else{
+                document.getElementById('responseOutput').innerText = ''
+               }else{
                 document.getElementById('responseOutput').innerText ='File retrieved';
-                downloadImage(data.response,data.filename)
-                document.getElementById('messageInput').value = '';
+                base64ToImage(data.response,data.file_extention)
+              
                 
                 appendMessage("File downloaded --byte");
                 document.getElementById('responseOutput').innerText = ''
                 }
 
-
-
             }else{
-            document.getElementById('responseOutput').innerText = data.response;
-            document.getElementById('confirmationMessage').innerText = 'Message sent and received!';
-            document.getElementById('messageInput').value = ''; // Clear the input field
-            appendMessage(data.response);}
+            document.getElementById('responseOutput').innerText = 'output: ' + data.response;
+            
+       
+            ;}
         }
 
         function appendMessage(message) {
             const messagesDiv = document.getElementById('messages');
-            const newMessageDiv = document.createElement('div');
-            newMessageDiv.classList.add('message');
-            newMessageDiv.innerText = message;
-            messagesDiv.appendChild(newMessageDiv);
+           messagesDiv.innerHTML = message
         }
 
         function handleKeyPress(event) {
@@ -134,85 +171,37 @@
             const head = document.getElementById('heading');
             head.innerHTML = data.heading;
 
-            const newMessageDiv = document.createElement('div');
-            newMessageDiv.classList.add('message');
-            newMessageDiv.innerText = data.message;
-            messagesDiv.appendChild(newMessageDiv);
+            // const newMessageDiv = document.createElement('div');
+            // newMessageDiv.classList.add('message');
+            // newMessageDiv.innerText = data.message;
+            // messagesDiv.appendChild(newMessageDiv);
         }
 
-
         function downloadFile(content,filename) {
-            // Create a Blob with the content
             const blob = new Blob([content], { type: 'text/plain' });
-
-            // Create a link element
             const link = document.createElement('a');
-
-            // Set the download attribute with a file name
             link.download = filename;
-
-            // Create a URL for the Blob and set it as the href attribute
             link.href = window.URL.createObjectURL(blob);
-
-            // Append the link to the body (required for Firefox)
             document.body.appendChild(link);
-
-            // Programmatically click the link to trigger the download
             link.click();
-
-            // Remove the link after download
             document.body.removeChild(link);
         }
     
-        function downloadImage(base64Data,filename) {
-           // Determine the MIME type based on the file extension
-           const fileExtension = filename.split('.').pop().toLowerCase();
-            let mimeType;
+        function base64ToImage(bs4,type_of) {
+            const base64String = bs4;
+            const fileExtension = type_of; 
             
-            switch (fileExtension) {
-                case 'png':
-                    mimeType = 'image/png';
-                    break;
-                case 'jpg':
-                case 'jpeg':
-                    mimeType = 'image/jpeg';
-                    break;
-                case 'gif':
-                    mimeType = 'image/gif';
-                    break;
-                case 'pdf':
-                    mimeType = 'application/pdf';
-                    break;
-                case 'txt':
-                    mimeType = 'text/plain';
-                    break;
-                default:
-                    mimeType = 'application/octet-stream';  // Default MIME type for unknown files
-            }
-
-            // Create the data URL for the base64 data
-            const dataUrl = `data:${mimeType};base64,${base64Data}`;
-
-            // Create a link element
+            const mimeType = `image/${fileExtension}`;
+            const dataUrl = `data:${mimeType};base64,${base64String}`;
             const link = document.createElement('a');
 
-            // Set the download attribute with the file name
-            link.download = filename;
-
-            // Set the href attribute to the data URL
+            link.download = `downloaded_image.${fileExtension}`;
             link.href = dataUrl;
-
-            // Append the link to the body (required for Firefox)
             document.body.appendChild(link);
-
-            // Programmatically click the link to trigger the download
             link.click();
-
-            // Remove the link after download
             document.body.removeChild(link);
-        
         }
-   
+        
         window.onload = fetchMessage;
     </script>
 </body>
